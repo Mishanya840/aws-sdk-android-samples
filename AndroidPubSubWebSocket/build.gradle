@@ -10,14 +10,14 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.4.1'
     }
 }
 
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile 'com.amazonaws:aws-android-sdk-iot:2.6.+'
+    compile 'com.amazonaws:aws-android-sdk-iot:2.15.1'
 }
 
 android {
