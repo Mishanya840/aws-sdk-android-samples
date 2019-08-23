@@ -24,8 +24,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
+import java.io.File;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobileconnectors.iot.AWSIotKeystoreHelper;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttClientStatusCallback;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttManager;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttNewMessageCallback;
@@ -40,14 +42,11 @@ public class PubSubActivity extends Activity {
 
     // Customer specific IoT endpoint
     // AWS Iot CLI describe-endpoint call returns: XXXXXXXXXX.iot.<region>.amazonaws.com,
-    private static final String CUSTOMER_SPECIFIC_ENDPOINT = "CHANGE_ME";
+    private static final String CUSTOMER_SPECIFIC_ENDPOINT = "";
 
-    // Cognito pool ID. For this app, pool needs to be unauthenticated pool with
-    // AWS IoT permissions.
-    private static final String COGNITO_POOL_ID = "CHANGE_ME";
 
     // Region of AWS IoT
-    private static final Regions MY_REGION = Regions.US_EAST_1;
+    private static final Regions MY_REGION = Regions.US_EAST_2;
 
     EditText txtSubscribe;
     EditText txtTopic;
@@ -64,8 +63,6 @@ public class PubSubActivity extends Activity {
 
     AWSIotMqttManager mqttManager;
     String clientId;
-
-    CognitoCachingCredentialsProvider credentialsProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,15 +93,18 @@ public class PubSubActivity extends Activity {
         // MQTT client IDs are required to be unique per AWS IoT account.
         // This UUID is "practically unique" but does not _guarantee_
         // uniqueness.
-        clientId = UUID.randomUUID().toString();
+        clientId = "";
         tvClientId.setText(clientId);
 
-        // Initialize the AWS Cognito credentials provider
-        credentialsProvider = new CognitoCachingCredentialsProvider(
-                getApplicationContext(), // context
-                COGNITO_POOL_ID, // Identity Pool ID
-                MY_REGION // Region
-        );
+        keystorePath = getFilesDir().getAbsolutePath();
+//
+//        File file = new File(keystorePath + "/" + keystoreName);
+
+        AWSIotKeystoreHelper.deleteKeystoreAlias(certId, keystorePath, keystoreName, keystorePassword);
+
+        AWSIotKeystoreHelper.saveCertificateAndPrivateKey(certId, certificate, privateKey, keystorePath, keystoreName, keystorePassword);
+
+
 
         // MQTT Client
         mqttManager = new AWSIotMqttManager(clientId, CUSTOMER_SPECIFIC_ENDPOINT);
@@ -130,7 +130,7 @@ public class PubSubActivity extends Activity {
             Log.d(LOG_TAG, "clientId = " + clientId);
 
             try {
-                mqttManager.connect(credentialsProvider, new AWSIotMqttClientStatusCallback() {
+                mqttManager.connect(AWSIotKeystoreHelper.getIotKeystore(certId, keystorePath, keystoreName, keystorePassword), new AWSIotMqttClientStatusCallback() {
                     @Override
                     public void onStatusChanged(final AWSIotMqttClientStatus status,
                             final Throwable throwable) {
@@ -236,4 +236,13 @@ public class PubSubActivity extends Activity {
 
         }
     };
+
+    private String privateKey = "";
+
+    private  String certificate = "";
+
+    private String certId = "aws_iot_id";
+    private String keystorePath = "key_path";
+    private String keystoreName = "iot_aws_private.key";
+    private String keystorePassword = "123123";
 }
